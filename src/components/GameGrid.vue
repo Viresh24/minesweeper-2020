@@ -5,10 +5,18 @@
         <v-hover v-slot:default="{ hover }" :key="col_idx">
           <v-col>
             <v-card
-              :class="[{'on-hover': hover}, 'square-card', 'flex-center']"
+              :class="[{'on-hover': hover}, {'clicked': col_idx.show}, 'square-card', 'flex-center']"
               elevation="4"
               outlined
-            ></v-card>
+              @click.left.prevent="openCell({
+                  row: row_idx,
+                  col: col_idx
+              })"
+            >
+              <div v-if="col.show">
+                <span class="font-weight-bold">{{ col.data }}</span>
+              </div>
+            </v-card>
           </v-col>
         </v-hover>
       </template>
@@ -34,7 +42,11 @@
 
   .on-hover {
       cursor: pointer;
-      background-color: rgba(0, 0, 0, 0.01) !important
+      background-color: rgba(0, 0, 0, 0.10) !important
+  }
+
+  .clicked {
+      background-color: rgba(248, 213, 25, 0)
   }
 </style>
 
@@ -44,7 +56,9 @@ import { mapGetters, mapActions } from 'vuex'
 export default Vue.extend({
   methods: {
     ...mapActions({
-      setPattern: 'gameGrid/setPattern'
+      setPattern: 'gameGrid/setPattern',
+      openCell: 'gameGrid/openCellData',
+      floodFill: 'gameGrid/floodFill'
     })
   },
   created () {

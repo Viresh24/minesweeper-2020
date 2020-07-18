@@ -1,16 +1,17 @@
 import { Commit, Dispatch } from 'vuex'
 
-type Cell = number | 'X'
+type CellData = number | 'X'
+type Cell = { data: CellData; show: boolean }
 
 interface GridState {
-    cellsData: Array<Cell>;
-    pattern: Array<Array<Cell>> | null;
+    cellsData: Array<CellData>;
+    pattern: Array<Array<Cell>>;
     size: number;
 }
 
 const state: GridState = {
   cellsData: [0, 0, 0, 0, 'X'], // 4:1
-  pattern: null,
+  pattern: [],
   size: 8
 }
 
@@ -31,7 +32,8 @@ const actions = {
 
     commit('setPatternState', pattern)
   },
-  async setSubPattern ({ state }: {state: GridState}, { rowIdx, pattern }: {rowIdx: number; pattern: Array<Array<Cell>>}) {
+  async setSubPattern ({ state }: {state: GridState},
+    { rowIdx, pattern }: {rowIdx: number; pattern: Array<Array<Cell>>}) {
     const size = state.size
     const subPattern: Array<Cell> = []
 
@@ -44,9 +46,9 @@ const actions = {
       // if previous cell value is 'X' or 'bomb', increment the inserted cell value
       // if inserted value is number and previous cell value is 'X', add previous cell value
       const prevCell = subPattern[colIdx - 1]
-      if (prevCell) {
-        if (typeof cell === 'string' && typeof prevCell === 'number') subPattern[colIdx - 1] = prevCell + 1
-        if (typeof cell === 'number' && typeof prevCell === 'string') cell += 1
+      if (colIdx > 0) {
+        if (cell === 'X' && typeof prevCell.data === 'number') subPattern[colIdx - 1].data = prevCell.data + 1
+        if (typeof cell === 'number' && prevCell.data === 'X') cell += 1
       }
 
       // same method, but for previous row
@@ -55,37 +57,72 @@ const actions = {
         const prevUpperRight = pattern[rowIdx - 1][colIdx + 1]
         const prevUpperCenter = pattern[rowIdx - 1][colIdx]
 
+        // upper left box
         if (prevUpperLeft) {
-          if (typeof cell === 'string') {
-            if (typeof prevUpperLeft === 'number') {
-              pattern[rowIdx - 1][colIdx - 1] = prevUpperLeft + 1
-            } else pattern[rowIdx - 1][colIdx - 1] = prevUpperLeft
-          } else if (typeof prevUpperLeft === 'string') { cell += 1 }
+          if (cell === 'X') {
+            if (typeof prevUpperLeft.data === 'number') {
+              pattern[rowIdx - 1][colIdx - 1].data = prevUpperLeft.data + 1
+            }
+          } else if (prevUpperLeft.data === 'X') { cell += 1 }
         }
-        if (prevUpperRight) {
-          if (typeof cell === 'string') {
-            if (typeof prevUpperRight === 'number') {
-              pattern[rowIdx - 1][colIdx + 1] = prevUpperRight + 1
-            } else pattern[rowIdx - 1][colIdx + 1] = prevUpperRight
-          } else if (typeof prevUpperRight === 'string') { cell += 1 }
-        }
+        // upper center box
         if (prevUpperCenter) {
-          if (typeof cell === 'string') {
-            if (typeof prevUpperCenter === 'number') {
-              pattern[rowIdx - 1][colIdx] = prevUpperCenter + 1
-            } else pattern[rowIdx - 1][colIdx] = prevUpperCenter
-          } else if (typeof prevUpperCenter === 'string') { cell += 1 }
+          if (cell === 'X') {
+            if (typeof prevUpperCenter.data === 'number') {
+              pattern[rowIdx - 1][colIdx].data = prevUpperCenter.data + 1
+            }
+          } else if (prevUpperCenter.data === 'X') { cell += 1 }
+        }
+        // upper right box
+        if (prevUpperRight) {
+          if (cell === 'X') {
+            if (typeof prevUpperRight.data === 'number') {
+              pattern[rowIdx - 1][colIdx + 1].data = prevUpperRight.data + 1
+            }
+          } else if (prevUpperRight.data === 'X') { cell += 1 }
         }
       }
-      subPattern.push(cell)
+      subPattern.push({
+        data: cell,
+        show: false
+      })
     }
     return subPattern
+  },
+  openCellData ({ state, commit, dispatch }: { state: GridState; commit: Commit; dispatch: Dispatch },
+    { row, col }: {row: number; col: number}) {
+    const pattern = state.pattern
+    if (!pattern[row] || !pattern[row][col]) return
+
+    const cell = pattern[row][col]
+
+    if (cell.data === 0) {
+      if (cell.show) return
+      dispatch('floodFill', {
+        cell: cell,
+        row: row,
+        col: col
+      })
+    }
+
+    commit('setCellDataShow', cell)
+  },
+  floodFill ({ dispatch, commit }: { dispatch: Dispatch; commit: Commit },
+    { cell, row, col }: { cell: CellData; row: number; col: number }) {
+    commit('setCellDataShow', cell)
+    dispatch('openCellData', { row: row, col: col + 1 })
+    dispatch('openCellData', { row: row, col: col - 1 })
+    dispatch('openCellData', { row: row + 1, col: col })
+    dispatch('openCellData', { row: row - 1, col: col })
   }
 }
 
 const mutations = {
   setPatternState (state: GridState, pattern: Array<Array<Cell>>) {
     state.pattern = pattern
+  },
+  setCellDataShow (_: GridState, cell: Cell) {
+    cell.show = true
   }
 }
 
