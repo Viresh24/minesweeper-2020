@@ -1,4 +1,4 @@
-# minesweeper-2020
+# Minesweeper 2020: Coronavirus Edition
 
 ## Project setup
 ```
