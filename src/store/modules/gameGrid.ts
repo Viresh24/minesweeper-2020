@@ -1,7 +1,7 @@
 import { Commit, Dispatch } from 'vuex'
 
 type CellData = number | 'X'
-type Cell = { data: CellData; show: boolean }
+type Cell = { data: CellData; show: boolean; flagged: boolean }
 
 interface GridState {
     cellsData: Array<CellData>;
@@ -84,7 +84,8 @@ const actions = {
       }
       subPattern.push({
         data: cell,
-        show: false
+        show: false,
+        flagged: false
       })
     }
     return subPattern
@@ -114,6 +115,13 @@ const actions = {
     dispatch('openCellData', { row: row, col: col - 1 })
     dispatch('openCellData', { row: row + 1, col: col })
     dispatch('openCellData', { row: row - 1, col: col })
+  },
+  flagCell ({ state, commit }: { state: GridState; commit: Commit },
+    { row, col }: {row: number; col: number}) {
+    const pattern = state.pattern
+    const cell = pattern[row][col]
+
+    if (!cell.show) { commit('toggleCellFlag', cell) }
   }
 }
 
@@ -123,6 +131,9 @@ const mutations = {
   },
   setCellDataShow (_: GridState, cell: Cell) {
     cell.show = true
+  },
+  toggleCellFlag (_: GridState, cell: Cell) {
+    cell.flagged = !cell.flagged
   }
 }
 
